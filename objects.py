@@ -1,5 +1,33 @@
 from settings import *
 
+class GameSprite(pygame.sprite.Sprite):
+    def __init__(self, image, x, y, w, h, speed):
+        super().__init__()
+        self.w = w
+        self.h = h
+        self.speed = speed
+        self.image = pygame.transform.scale(pygame.image.load(image).convert_alpha(), (w, h))
+        self.start_image = self.image
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+
+    def change_image(self, new_image):
+        self.image = pygame.transform.scale(pygame.image.load(new_image).convert_alpha(), (self.w, self.h))
+        self.start_image = self.image
+
+    def rotate(self, angle):
+        self.image = pygame.transform.rotate(self.start_image, angle)
+        self.rect = self.image.get_rect(center=(self.rect.centerx, self.rect.centery))
+
+    def draw(self):
+        window.blit(self.image, self.rect)
+        if self.text_visible:
+            rect = self.label.get_rect()
+            window.blit(self.label, (self.rect.centerx - rect.width / 2, self.rect.centery + 50))
+
+    def reset(self):
+        window.blit(self.image, (self.rect.x, self.rect.y))
+
 class UI:
     def __init__(self):
         pass
@@ -74,6 +102,7 @@ class Tank:
             dy = DIRECTS[self.direct][1] * self.bulletSpeed
             Bullet(self, self.rect.centerx, self.rect.centery, dx, dy, self.bulletDamage)
             self.shotTimer = self.shotDelay
+            shot_sound.play()
 
         if self.shotTimer > 0: self.shotTimer -= 1
 

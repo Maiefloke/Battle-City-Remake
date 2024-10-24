@@ -1,6 +1,8 @@
 import pygame
 from random import randint
+from pygame import mixer
 
+mixer.init()
 pygame.init()
 
 WIDTH = 900
@@ -8,6 +10,7 @@ HEIGHT = 600
 
 FPS = 60
 TILE = 32
+GO = False
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -15,8 +18,12 @@ clock = pygame.time.Clock()
 fontUI = pygame.font.Font(None, 30)
 
 imgBrick = pygame.image.load('images/block_brick.png')
-
 background_menu = pygame.transform.scale(pygame.image.load('images/main_screen.png'), (WIDTH, HEIGHT))
+background_pause = pygame.transform.scale(pygame.image.load('images/background_pause.png'), (WIDTH, HEIGHT))
+
+mixer.music.load('sounds/main_song.mp3')
+
+shot_sound = mixer.Sound("sounds/shot.wav")
 
 imgTanks = [
     pygame.image.load('images/tank1.png'),
