@@ -1,6 +1,7 @@
 import pygame
 from random import randint
 from pygame import mixer
+from queue import PriorityQueue
 
 mixer.init()
 pygame.init()
@@ -10,7 +11,6 @@ HEIGHT = 600
 
 FPS = 60
 TILE = 32
-GO = False
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -35,13 +35,25 @@ imgTanks = [
     pygame.image.load('images/tank7.png'),
     pygame.image.load('images/tank8.png'),
     ]
+
 imgBangs = [
     pygame.image.load('images/bang1.png'),
     pygame.image.load('images/bang2.png'),
     pygame.image.load('images/bang3.png'),
     ]
 
+imgBonuses = [
+    pygame.image.load('images/bonus_star.png'),
+    pygame.image.load('images/bonus_tank.png'),
+    ]
+
 DIRECTS = [[0, -1], [1, 0], [0, 1], [-1, 0]]
+
+MOVE_SPEED =    [1, 2, 2, 1, 2, 3, 3, 2]
+BULLET_SPEED =  [4, 5, 6, 5, 5, 5, 6, 7]
+BULLET_DAMAGE = [1, 1, 2, 3, 2, 2, 3, 4]
+SHOT_DELAY =    [60, 50, 30, 40, 30, 25, 25, 30]
 
 bullets = []
 objects = []
+blocks = []
