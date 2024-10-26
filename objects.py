@@ -132,40 +132,45 @@ class Enemy(pygame.sprite.Sprite):
         self.blocks = blocks
         self.path = []
         self.target_index = 0
+        self.path_timer = 0  # таймер для обмеження частоти пошуку шляху
 
     def update(self):
-        # Якщо ворог не має шляху або досяг кінцевої точки, знаходить новий шлях
-        if not self.path or self.target_index >= len(self.path):
+        # Оновлюємо шлях кожні 30 кадрів
+        if self.path_timer <= 0:
             self.path = self.find_path(self.rect.center, self.player.rect.center)
-            self.target_index = 0  # Починаємо з початку шляху
+            self.target_index = 0
+            self.path_timer = 30  # оновлюється кожні 30 кадрів
+        else:
+            self.path_timer -= 1
 
-        # Якщо є шлях, рухаємось до наступної точки
         if self.path and self.target_index < len(self.path):
             target_pos = self.path[self.target_index]
 
-            # Вираховуємо різницю між поточним положенням ворога та цільовою точкою
             dx = target_pos[0] - self.rect.x
             dy = target_pos[1] - self.rect.y
 
-            # Перевірка чи ворог досяг наступної точки
+            # Перевірка на досягнення наступної точки
             if abs(dx) <= self.speed and abs(dy) <= self.speed:
-                # Досягли цільової точки
                 self.rect.x, self.rect.y = target_pos
-                self.target_index += 1  # Переходить до наступної точки шляху
+                self.target_index += 1
             else:
-                # Рух ворога до цільової точки (по горизонталі чи вертикалі)
-                if abs(dx) > abs(dy):  # Рух по осі x, якщо відстань по x більша
+                old_position = self.rect.topleft
+                # Рух по осі x або y, якщо досягнути не вдалося
+                if abs(dx) > abs(dy):
                     self.rect.x += self.speed if dx > 0 else -self.speed
-                else:  # Інакше рухаємося по осі y
+                else:
                     self.rect.y += self.speed if dy > 0 else -self.speed
 
+                # Перевірка зіткнення з блоками
+                if any(self.rect.colliderect(block.rect) for block in self.blocks):
+                    self.rect.topleft = old_position
+
     def find_path(self, start, goal):
-        # A* алгоритм пошуку шляху
         def heuristic(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-        start = (start[0] // 50 * 50, start[1] // 50 * 50)
-        goal = (goal[0] // 50 * 50, goal[1] // 50 * 50)
+        start = (start[0] // TILE * TILE, start[1] // TILE * TILE)
+        goal = (goal[0] // TILE * TILE, goal[1] // TILE * TILE)
         open_set = PriorityQueue()
         open_set.put((0, start))
         came_from = {}
@@ -176,7 +181,6 @@ class Enemy(pygame.sprite.Sprite):
             _, current = open_set.get()
 
             if current == goal:
-                # Відновлення шляху
                 path = []
                 while current in came_from:
                     path.append(current)
@@ -184,12 +188,12 @@ class Enemy(pygame.sprite.Sprite):
                 path.reverse()
                 return path
 
-            for dx, dy in [(50, 0), (-50, 0), (0, 50), (0, -50)]:
+            for dx, dy in [(TILE, 0), (-TILE, 0), (0, TILE), (0, -TILE)]:
                 neighbor = (current[0] + dx, current[1] + dy)
                 tentative_g_score = g_score[current] + 1
 
-                # Перевірка на перешкоди та чи було вже відвідано цю клітинку
-                if any(ob.rect.collidepoint(neighbor) for ob in self.blocks):
+                # Перевірка зіткнення з блоками
+                if any(block.rect.collidepoint(neighbor) for block in self.blocks):
                     continue
 
                 if neighbor in g_score and tentative_g_score >= g_score[neighbor]:
@@ -220,6 +224,10 @@ class Bullet:
 
         if self.px < 0 or self.px > WIDTH or self.py < 0 or self.py > HEIGHT:
             bullets.remove(self)
+            try:
+                bullets.remove(self)
+            except ValueError:
+                pass
         else:
             for obj in objects:
                 if obj != self.parent and obj.type != 'bang' and obj.type != 'bonus':
