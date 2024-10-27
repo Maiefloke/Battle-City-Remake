@@ -113,6 +113,16 @@ class Tank:
                 if self.rect.colliderect(obj):
                     self.rect.topleft = oldX, oldY
 
+        if self.rect.x < 0:
+            self.rect.x = 0
+        elif self.rect.x > WIDTH - TILE:
+            self.rect.x = WIDTH - TILE
+
+        if self.rect.y < 0:
+            self.rect.y = 0
+        elif self.rect.y > HEIGHT - TILE:
+            self.rect.y = HEIGHT - TILE
+
     def draw(self):
         window.blit(self.image, self.rect)
 
@@ -123,49 +133,104 @@ class Tank:
             print(self.color, 'is dead')
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, player, blocks):
+    def __init__(self, player, blocks, spawn_position=None):
         super().__init__()
         self.image = pygame.transform.scale(pygame.image.load("images/tank4.png"), (TILE, TILE))
-        self.rect = self.image.get_rect(center=(100, 100))
+        self.rect = self.image.get_rect()
+
+        # Спавн ворога на позиції без блоків
+        self.rect.center = self.get_valid_spawn_position(blocks) if spawn_position is None else spawn_position
+
         self.speed = 2
         self.player = player
         self.blocks = blocks
-        self.path = []
-        self.target_index = 0
-        self.path_timer = 0  # таймер для обмеження частоти пошуку шляху
+        self.path = []  # Шлях ворога до гравця
+        self.shoot_cooldown = 30  # Інтервал часу між пострілами
+        self.shoot_timer = 0  # Лічильник часу до наступного пострілу
+
+    def get_valid_spawn_position(self, blocks):
+        """Знайти позицію для спавну, яка не перекривається з блоками."""
+        attempts = 100  # Кількість спроб
+        for _ in range(attempts):
+            x = random.randint(0, WIDTH // TILE - 1) * TILE
+            y = random.randint(0, HEIGHT // TILE - 1) * TILE
+            spawn_rect = pygame.Rect(x, y, TILE, TILE)
+            if not any(block.rect.colliderect(spawn_rect) for block in blocks):
+                return x, y
+        # Якщо не знайшли вільне місце, повертаємось на безпечне місце
+        return TILE, TILE  # Початковий кут, де точно немає блоків
 
     def update(self):
-        # Оновлюємо шлях кожні 30 кадрів
-        if self.path_timer <= 0:
+        if self.shoot_timer > 0:
+            self.shoot_timer -= 1
+
+        # Оновлення шляху до гравця
+        if not self.path or random.random() < 0.1:  # Оновлюємо шлях кожні кілька кадрів
             self.path = self.find_path(self.rect.center, self.player.rect.center)
-            self.target_index = 0
-            self.path_timer = 30  # оновлюється кожні 30 кадрів
-        else:
-            self.path_timer -= 1
 
-        if self.path and self.target_index < len(self.path):
-            target_pos = self.path[self.target_index]
+        # Стрільба, якщо гравець видимий
+        if self.can_see_player():
+            self.shoot()
 
-            dx = target_pos[0] - self.rect.x
-            dy = target_pos[1] - self.rect.y
+        # Рух по шляху
+        self.move_along_path()
 
-            # Перевірка на досягнення наступної точки
+    def can_see_player(self):
+        dx = self.player.rect.centerx - self.rect.centerx
+        dy = self.player.rect.centery - self.rect.centery
+        distance = (dx ** 2 + dy ** 2) ** 0.5
+        if distance > 0:
+            line_to_player = pygame.Rect(min(self.rect.centerx, self.player.rect.centerx),
+                                         min(self.rect.centery, self.player.rect.centery),
+                                         abs(self.rect.centerx - self.player.rect.centerx) or 1,
+                                         abs(self.rect.centery - self.player.rect.centery) or 1)
+            if not any(block.rect.colliderect(line_to_player) for block in self.blocks):
+                return True
+        return False
+
+    def shoot(self):
+        if self.shoot_timer == 0:
+            dx = self.player.rect.centerx - self.rect.centerx
+            dy = self.player.rect.centery - self.rect.centery
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance > 0:
+                dx, dy = dx / distance * BULLET_SPEED[0], dy / distance * BULLET_SPEED[0]
+            Bullet(self, self.rect.centerx, self.rect.centery, dx, dy, 1)
+            self.shoot_timer = self.shoot_cooldown
+
+    def move_along_path(self):
+        """Рух по шляху до гравця."""
+        if self.path:
+            target_pos = self.path[0]
+            dx = target_pos[0] - self.rect.centerx
+            dy = target_pos[1] - self.rect.centery
+
             if abs(dx) <= self.speed and abs(dy) <= self.speed:
-                self.rect.x, self.rect.y = target_pos
-                self.target_index += 1
+                self.rect.center = target_pos
+                self.path.pop(0)  # Переходимо до наступної точки
             else:
-                old_position = self.rect.topleft
-                # Рух по осі x або y, якщо досягнути не вдалося
+                new_rect = self.rect.copy()
                 if abs(dx) > abs(dy):
-                    self.rect.x += self.speed if dx > 0 else -self.speed
+                    new_rect.x += self.speed if dx > 0 else -self.speed
                 else:
-                    self.rect.y += self.speed if dy > 0 else -self.speed
+                    new_rect.y += self.speed if dy > 0 else -self.speed
 
-                # Перевірка зіткнення з блоками
-                if any(self.rect.colliderect(block.rect) for block in self.blocks):
-                    self.rect.topleft = old_position
+                # Перевірка на зіткнення з блоками
+                if not any(block.rect.colliderect(new_rect) for block in self.blocks):
+                    self.rect = new_rect
+                else:
+                    # Якщо не вдалося рухатись, обходимо перешкоду
+                    new_rect = self.rect.copy()
+                    if abs(dx) > abs(dy):
+                        new_rect.y += self.speed if dy > 0 else -self.speed
+                    else:
+                        new_rect.x += self.speed if dx > 0 else -self.speed
+                    
+                    if not any(block.rect.colliderect(new_rect) for block in self.blocks):
+                        self.rect = new_rect
 
     def find_path(self, start, goal):
+        """A* алгоритм для пошуку шляху."""
         def heuristic(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
@@ -176,9 +241,12 @@ class Enemy(pygame.sprite.Sprite):
         came_from = {}
         g_score = {start: 0}
         f_score = {start: heuristic(start, goal)}
+        max_depth = 500
 
-        while not open_set.empty():
+        depth = 0
+        while not open_set.empty() and depth < max_depth:
             _, current = open_set.get()
+            depth += 1
 
             if current == goal:
                 path = []
@@ -192,7 +260,6 @@ class Enemy(pygame.sprite.Sprite):
                 neighbor = (current[0] + dx, current[1] + dy)
                 tentative_g_score = g_score[current] + 1
 
-                # Перевірка зіткнення з блоками
                 if any(block.rect.collidepoint(neighbor) for block in self.blocks):
                     continue
 
@@ -206,7 +273,7 @@ class Enemy(pygame.sprite.Sprite):
 
         return []
 
-    def draw(self):
+    def draw(self, window):
         window.blit(self.image, self.rect)
 
 class Bullet:

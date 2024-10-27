@@ -1,5 +1,6 @@
 import pygame
 from random import randint
+import random
 from pygame import mixer
 from queue import PriorityQueue
 

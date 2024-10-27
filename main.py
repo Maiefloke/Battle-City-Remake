@@ -53,7 +53,7 @@ while True:
                 game = "pause"
 
         enemy.update()
-        enemy.draw()
+        enemy.draw(window)
     
         for bullet in bullets:
             bullet.update()
