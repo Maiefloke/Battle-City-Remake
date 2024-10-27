@@ -148,10 +148,16 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = 1
         self.player = player
         self.blocks = blocks
+        self.hp = 1  # Вороги також повинні мати здоров'я
         self.path = []
         self.target_index = 0
         self.shoot_cooldown = 50
         self.shoot_timer = 0
+
+    def damage(self, value):
+        self.hp -= value  # Зменшуємо здоров'я ворога
+        if self.hp <= 0:
+            self.kill()  # Видаляємо ворога, якщо його здоров'я стало 0 або менше
 
     def update(self):
         if self.shoot_timer > 0:
@@ -182,6 +188,12 @@ class Enemy(pygame.sprite.Sprite):
         # Стрільба по гравцеві
         if self.can_see_player():
             self.shoot()
+
+        for bullet in bullets:
+            if bullet.parent != self and bullet.rect.colliderect(self.rect):
+                self.damage(bullet.damage)
+                bullets.remove(bullet)
+                Bang(self.rect.centerx, self.rect.centery)
 
     def can_see_player(self):
         dx = self.player.rect.centerx - self.rect.centerx
@@ -252,34 +264,41 @@ class Enemy(pygame.sprite.Sprite):
 
 class Bullet:
     def __init__(self, parent, px, py, dx, dy, damage):
-        self.parent = parent
-        self.px, self.py = px, py
-        self.dx, self.dy = dx, dy
-        self.damage = damage
+        self.parent = parent  # Зберігаємо посилання на танк, який стріляє
+        self.px, self.py = px, py  # Початкові координати кулі
+        self.dx, self.dy = dx, dy  # Напрямок та швидкість кулі
+        self.damage = damage  # Завдані ушкодження
 
-        bullets.append(self)
+        self.radius = 2  # Радіус кулі для малювання та колізій
+        self.rect = pygame.Rect(px - self.radius, py - self.radius, self.radius * 2, self.radius * 2)  # Прямокутник для колізій
+
+        bullets.append(self)  # Додаємо кулю до списку куль
 
     def update(self):
+        # Оновлюємо позицію кулі
         self.px += self.dx
         self.py += self.dy
 
+        # Оновлюємо прямокутник для колізій
+        self.rect.topleft = (self.px - self.radius, self.py - self.radius)
+
+        # Перевірка, чи куля виходить за межі екрану
         if self.px < 0 or self.px > WIDTH or self.py < 0 or self.py > HEIGHT:
-            bullets.remove(self)
-            try:
-                bullets.remove(self)
-            except ValueError:
-                pass
+            bullets.remove(self)  # Видаляємо кулю, якщо вона за межами екрана
         else:
+            # Перевірка на колізії з іншими об'єктами
             for obj in objects:
+                # Перевірка, чи куля вразила інший об'єкт
                 if obj != self.parent and obj.type != 'bang' and obj.type != 'bonus':
-                    if obj.rect.collidepoint(self.px, self.py):
-                        obj.damage(self.damage)
-                        bullets.remove(self)
-                        Bang(self.px, self.py)
+                    if obj.rect.colliderect(self.rect):
+                        obj.damage(self.damage)  # Наносимо ушкодження
+                        bullets.remove(self)  # Видаляємо кулю
+                        Bang(self.px, self.py)  # Створюємо ефект вибуху
                         break
 
     def draw(self):
-        pygame.draw.circle(window, 'yellow', (self.px, self.py), 2)
+        # Малюємо кулю на екрані
+        pygame.draw.circle(window, 'yellow', (int(self.px), int(self.py)), self.radius)
 
 class Bang:
     def __init__(self, px, py):
