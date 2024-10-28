@@ -61,7 +61,7 @@ class Tank:
         self.bulletSpeed = 5
         self.bulletDamage = 1
 
-        self.hp = 5
+        self.hp = 30
         
         self.keyLEFT = keysList[0]
         self.keyRIGHT = keysList[1]
@@ -141,6 +141,10 @@ class Tank:
             print(self.color, 'is dead')
 
 class Enemy(pygame.sprite.Sprite):
+
+    spawn_timer = 0  # Таймер для спавну ворогів
+    spawn_interval = 3000
+
     def __init__(self, player, blocks):
         super().__init__()
         enemys.append(self)
@@ -157,12 +161,20 @@ class Enemy(pygame.sprite.Sprite):
         self.shoot_timer = 0
 
     def damage(self, value):
-        self.hp -= value  # Зменшуємо здоров'я ворога
-        for object in enemys:
-            if self.hp <= 0:
+        self.hp -= value 
+        if self.hp <= 0:
+            for object in enemys:
                 self.kill()  # Видаляємо ворога, якщо його здоров'я стало 0 або менше
                 enemys.remove(object)
 
+    @classmethod
+    def spawn(cls, player, blocks):
+        # Перевіряємо, чи минув інтервал спавну
+        current_time = pygame.time.get_ticks()
+        if current_time - cls.spawn_timer >= cls.spawn_interval:
+            # Спавнимо нового ворога та оновлюємо таймер
+            cls(player, blocks)
+            cls.spawn_timer = current_time
 
     def update(self):
         if self.shoot_timer > 0:

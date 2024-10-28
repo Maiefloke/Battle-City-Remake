@@ -1,7 +1,6 @@
 from objects import *
 
 player = Tank('blue', 100, 275, 0, (pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s, pygame.K_SPACE))
-enemy = Enemy(player, blocks)
 
 btn_start = GameSprite("images/Play_button.png", WIDTH / 2, HEIGHT / 2 + 170, 150, 70, 0)
 btn_start_pause = GameSprite("images/Play_button.png", WIDTH / 2, HEIGHT / 2 - 30, 150, 70, 0)
@@ -51,6 +50,8 @@ while True:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 game = "pause"
+
+        Enemy.spawn(player, blocks)
 
         for enm in enemys:
             enm.update()
