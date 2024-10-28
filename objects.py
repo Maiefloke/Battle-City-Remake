@@ -136,8 +136,11 @@ class Tank:
 
     def damage(self, value):
         self.hp -= value
+        print("ворог наносить урон танку")
         if self.hp <= 0:
             objects.remove(self)
+            game = "menu"
+            print("ворог вбиваэ танка")
             print(self.color, 'is dead')
 
 class Enemy(pygame.sprite.Sprite):
@@ -154,24 +157,28 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = 1
         self.player = player
         self.blocks = blocks
-        self.hp = 1  # Вороги також повинні мати здоров'я
+        self.hp = 1
         self.path = []
         self.target_index = 0
         self.shoot_cooldown = 50
         self.shoot_timer = 0
 
     def damage(self, value):
+        global score
         self.hp -= value 
+        print("гравець наносить удар по ворогу")
         if self.hp <= 0:
-            for object in enemys:
-                self.kill()  # Видаляємо ворога, якщо його здоров'я стало 0 або менше
-                enemys.remove(object)
+            enemys.remove(self)
+            self.kill()
+            score += 10
+            print("Ворог знищений! Очки:", score)
 
     @classmethod
     def spawn(cls, player, blocks):
         # Перевіряємо, чи минув інтервал спавну
         current_time = pygame.time.get_ticks()
         if current_time - cls.spawn_timer >= cls.spawn_interval:
+            print("ворог спавниться")
             # Спавнимо нового ворога та оновлюємо таймер
             cls(player, blocks)
             cls.spawn_timer = current_time
@@ -227,6 +234,7 @@ class Enemy(pygame.sprite.Sprite):
 
     def shoot(self):
         if self.shoot_timer == 0:
+            print("ворог стріляє по гравцю")
             dx = self.player.rect.centerx - self.rect.centerx
             dy = self.player.rect.centery - self.rect.centery
             distance = (dx ** 2 + dy ** 2) ** 0.5
@@ -352,7 +360,9 @@ class Block:
 
     def damage(self, value):
         self.hp -= value
-        if self.hp <= 0: objects.remove(self)
+        if self.hp <= 0:
+            print("блок знищено")
+            objects.remove(self)
 
 class Bonus:
     def __init__(self, px, py, bonusNum):
@@ -364,6 +374,7 @@ class Bonus:
 
         self.timer = 600
         self.bonusNum = bonusNum
+        print("спавниться бонус")
 
     def update(self):
         if self.timer > 0: self.timer -= 1

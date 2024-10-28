@@ -13,6 +13,8 @@ HEIGHT = 600
 FPS = 60
 TILE = 32
 
+score = 0
+
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 

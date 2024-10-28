@@ -71,9 +71,12 @@ while True:
         for obj in objects:
             obj.draw()
 
+        score_text = fontUI.render(f"Очки: {score}", True, (255, 255, 255))
+        window.blit(score_text, (10, 10))
+
         ui.update()
         ui.draw()
-        
+    
         pygame.display.update()
         clock.tick(FPS)
 
