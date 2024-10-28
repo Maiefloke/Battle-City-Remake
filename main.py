@@ -52,8 +52,11 @@ while True:
             if event.key == pygame.K_ESCAPE:
                 game = "pause"
 
-        enemy.update()
-        enemy.draw(window)
+        for enm in enemys:
+            enm.update()
+
+        for enm in enemys:
+            enm.draw(window)
     
         for bullet in bullets:
             bullet.update()

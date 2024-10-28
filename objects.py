@@ -143,6 +143,8 @@ class Tank:
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, player, blocks):
         super().__init__()
+        enemys.append(self)
+        self.type = "enemy"
         self.image = pygame.transform.scale(pygame.image.load("images/tank4.png"), (25, 25))
         self.rect = self.image.get_rect(center=(random.randint(0, WIDTH), random.randint(0, HEIGHT)))
         self.speed = 1
@@ -156,8 +158,11 @@ class Enemy(pygame.sprite.Sprite):
 
     def damage(self, value):
         self.hp -= value  # Зменшуємо здоров'я ворога
-        if self.hp <= 0:
-            self.kill()  # Видаляємо ворога, якщо його здоров'я стало 0 або менше
+        for object in enemys:
+            if self.hp <= 0:
+                self.kill()  # Видаляємо ворога, якщо його здоров'я стало 0 або менше
+                enemys.remove(object)
+
 
     def update(self):
         if self.shoot_timer > 0:
